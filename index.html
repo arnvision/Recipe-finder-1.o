@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe Finder by Arn_Vision</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <!-- Dark Mode Toggle -->
+    <div class="theme-toggle">
+      <button id="themeToggle">🌙 Dark Mode</button>
+    </div>
+
+    <!-- Header -->
+    <header>
+      <div class="logo">
+        <img src="https://via.placeholder.com/50" alt="Arn_Vision Logo">
+        <span>Arn_Vision</span>
+      </div>
+      <h1>Recipe Finder</h1>
+      <p>Find delicious recipes based on ingredients you have!</p>
+    </header>
+
+    <!-- Search Form -->
+    <form id="searchForm">
+      <input type="text" id="ingredient" placeholder="Enter ingredients (e.g., chicken, rice)" required>
+      <select id="diet">
+        <option value="">Any Diet</option>
+        <option value="vegetarian">Vegetarian</option>
+        <option value="vegan">Vegan</option>
+        <option value="gluten-free">Gluten-Free</option>
+      </select>
+      <select id="cuisine">
+        <option value="">Any Cuisine</option>
+        <option value="italian">Italian</option>
+        <option value="indian">Indian</option>
+        <option value="mexican">Mexican</option>
+      </select>
+      <button type="submit">Search</button>
+    </form>
+
+    <!-- Recipe Results -->
+    <div id="recipeResults" class="recipe-results"></div>
+
+    <!-- Community Recipes -->
+    <div id="communityRecipes">
+      <h2>Community Recipes</h2>
+      <form id="uploadRecipeForm">
+        <input type="text" id="recipeTitle" placeholder="Recipe Title" required>
+        <textarea id="recipeInstructions" placeholder="Instructions" required></textarea>
+        <input type="text" id="recipeIngredients" placeholder="Ingredients (comma-separated)" required>
+        <button type="submit">Upload Recipe</button>
+      </form>
+      <div class="recipe-results"></div>
+    </div>
+
+    <!-- Meal Planner -->
+    <div id="mealPlanner">
+      <h2>Meal Planner</h2>
+      <div class="week">
+        <div class="day" data-day="monday">Monday</div>
+        <div class="day" data-day="tuesday">Tuesday</div>
+        <div class="day" data-day="wednesday">Wednesday</div>
+        <div class="day" data-day="thursday">Thursday</div>
+        <div class="day" data-day="friday">Friday</div>
+        <div class="day" data-day="saturday">Saturday</div>
+        <div class="day" data-day="sunday">Sunday</div>
+      </div>
+    </div>
+
+    <!-- Shopping List -->
+    <div id="shoppingList">
+      <h2>Shopping List</h2>
+      <ul id="shoppingItems"></ul>
+    </div>
+
+    <!-- Favorites Section -->
+    <h2>Favorite Recipes</h2>
+    <div id="favoriteRecipes" class="recipe-results"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCCTnXKmciFE_sraOH9RQf32vaUuzWa3ls",
+      authDomain: "recipe-finder-ba2f1.firebaseapp.com",
+      projectId: "recipe-finder-ba2f1",
+      storageBucket: "recipe-finder-ba2f1.firebasestorage.app",
+      messagingSenderId: "674007585302",
+      appId: "1:674007585302:web:2f2d643ac583fa38e01b37",
+      measurementId: "G-9DGLMKQBEE"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app); // Initialize Firestore
+
+    // Handle recipe uploads
+    document.getElementById('uploadRecipeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('recipeTitle').value;
+      const instructions = document.getElementById('recipeInstructions').value;
+      const ingredients = document.getElementById('recipeIngredients').value.split(',').map(i => i.trim());
+
+      const recipe = {
+        title,
+        instructions,
+        ingredients,
+        image: 'https://via.placeholder.com/150', // Placeholder image
+        timestamp: new Date().toISOString(), // Add a timestamp
+      };
+
+      try {
+        // Save recipe to Firestore
+        await addDoc(collection(db, 'recipes'), recipe);
+        alert('Recipe uploaded successfully!');
+        displayCommunityRecipes(); // Refresh the community recipes section
+      } catch (error) {
+        console.error('Error uploading recipe: ', error);
+        alert('Failed to upload recipe. Please try again.');
+      }
+    });
+
+    // Display community recipes
+    async function displayCommunityRecipes() {
+      const communitySection = document.querySelector('#communityRecipes .recipe-results');
+      communitySection.innerHTML = ''; // Clear previous content
+
+      try {
+        // Fetch recipes from Firestore
+        const querySnapshot = await getDocs(collection(db, 'recipes'));
+        querySnapshot.forEach((doc) => {
+          const recipe = doc.data();
+          communitySection.innerHTML += `
+            <div class="recipe-card" data-id="${doc.id}">
+              <img src="${recipe.image}" alt="${recipe.title}">
+              <h3>${recipe.title}</h3>
+              <p>${recipe.ingredients.join(', ')}</p>
+              <button class="view-details-btn">View Details</button>
+              <div class="rating">
+                <span>Rate this recipe:</span>
+                <span class="stars">
+                  <span data-rating="1">⭐</span>
+                  <span data-rating="2">⭐</span>
+                  <span data-rating="3">⭐</span>
+                  <span data-rating="4">⭐</span>
+                  <span data-rating="5">⭐</span>
+                </span>
+              </div>
+            </div>
+          `;
+        });
+      } catch (error) {
+        console.error('Error fetching recipes: ', error);
+      }
+    }
+
+    // Load community recipes on page load
+    displayCommunityRecipes();
+  </script>
+
+  <!-- Your app.js script -->
+  <script src="app.js"></script>
+</body>
+</html>
